@@ -427,6 +427,9 @@
             </div>
             <button class="btn" onclick="uploadAndProcess()">🚀 Upload & Start Detection</button>
             <div id="upload-progress"></div>
+            <div class="info-panel" style="margin-top: 15px;">
+                <strong>💡 Tip:</strong> For best compatibility, use MP4 files with H.264 codec. Avoid WebM/MKV files that may have codec issues.
+            </div>
         </div>
 
         <div id="settings-panel" class="settings-panel" style="display: none;">
@@ -481,16 +484,139 @@
         let isRunning = false;
         let statusInterval;
         let isDroidCamInputFocused = false;
+        let lastSpeechTime = 0;
+        let speechInitialized = false;
+
+        // Text-to-Speech function
+        function speak(text) {
+            if (!('speechSynthesis' in window)) {
+                console.warn('Speech synthesis not supported');
+                return;
+            }
+
+            // Debounce - prevent speaking too frequently
+            const now = Date.now();
+            if (now - lastSpeechTime < 800) {
+                return;
+            }
+            lastSpeechTime = now;
+
+            // Cancel any ongoing speech
+            window.speechSynthesis.cancel();
+            
+            // Small delay to ensure cancel completes
+            setTimeout(() => {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.rate = 1.1;
+                utterance.pitch = 1.0;
+                utterance.volume = 1.0;
+                utterance.lang = 'en-US';
+                
+                utterance.onerror = (event) => {
+                    console.error('Speech error:', event);
+                };
+                
+                window.speechSynthesis.speak(utterance);
+                speechInitialized = true;
+            }, 50);
+        }
+
+        // Initialize speech on first user interaction
+        function initializeSpeech() {
+            if (!speechInitialized && 'speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance('');
+                window.speechSynthesis.speak(utterance);
+                speechInitialized = true;
+            }
+        }
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             updateStatus();
             statusInterval = setInterval(updateStatus, 2000);
             
+            // Initialize speech on first click anywhere
+            document.addEventListener('click', initializeSpeech, { once: true });
+            
             // Track when user is editing DroidCam IP field
             const droidcamInput = document.getElementById('droidcam-ip');
             droidcamInput.addEventListener('focus', () => isDroidCamInputFocused = true);
             droidcamInput.addEventListener('blur', () => isDroidCamInputFocused = false);
+            
+            // Add TTS to all buttons on hover
+            document.getElementById('btn-camera').addEventListener('mouseenter', () => speak('Real-time Detection'));
+            document.getElementById('btn-video').addEventListener('mouseenter', () => speak('Video Detection'));
+            document.getElementById('btn-settings').addEventListener('mouseenter', () => speak('DroidCam Settings'));
+            document.getElementById('btn-stop').addEventListener('mouseenter', () => speak('Stop Detection'));
+            
+            // Add TTS to header elements
+            document.querySelector('.header h1').addEventListener('mouseenter', () => speak('WeSee - Object Detection System'));
+            document.querySelector('.header .subtitle').addEventListener('mouseenter', () => speak('Real-time AI Object Detection and Distance Measurement'));
+            document.getElementById('model-status').addEventListener('mouseenter', function() {
+                speak(this.textContent);
+            });
+            
+            // Add TTS to project banner
+            document.querySelector('.project-banner h2').addEventListener('mouseenter', () => speak('Object Recognition using Image Processing and Pattern Recognition Techniques'));
+            
+            // Add TTS to team table headers
+            const tableHeaders = document.querySelectorAll('.team-table th');
+            tableHeaders.forEach(th => {
+                th.addEventListener('mouseenter', () => speak(th.textContent));
+            });
+            
+            // Add TTS to team table rows
+            const tableRows = document.querySelectorAll('.team-table tbody tr');
+            tableRows.forEach(row => {
+                row.addEventListener('mouseenter', () => {
+                    const cells = row.querySelectorAll('td');
+                    const name = cells[0].textContent;
+                    const id = cells[1].textContent;
+                    speak(`${name}, Student ID ${id}`);
+                });
+            });
+            
+            // Add TTS to status bar
+            document.getElementById('status-text').addEventListener('mouseenter', function() {
+                speak(this.textContent);
+            });
+            
+            // Add TTS to stats labels
+            const statLabels = document.querySelectorAll('.stat-card .label');
+            statLabels.forEach(label => {
+                label.parentElement.addEventListener('mouseenter', function() {
+                    const value = this.querySelector('.value').textContent;
+                    const labelText = this.querySelector('.label').textContent;
+                    speak(`${labelText}: ${value}`);
+                });
+            });
+            
+            // Add TTS to video placeholder
+            document.getElementById('video-placeholder').addEventListener('mouseenter', () => speak('WeSee Detection Ready. Select a detection mode to start'));
+            
+            // Add TTS to upload section heading
+            const uploadHeading = document.querySelector('#upload-section h3');
+            if (uploadHeading) {
+                uploadHeading.addEventListener('mouseenter', () => speak('Upload Video File'));
+            }
+            
+            // Add TTS to settings panel heading
+            const settingsHeading = document.querySelector('#settings-panel h3');
+            if (settingsHeading) {
+                settingsHeading.addEventListener('mouseenter', () => speak('DroidCam Settings'));
+            }
+            
+            // Add TTS to DroidCam label
+            const droidcamLabel = document.querySelector('#settings-panel .settings-row label');
+            if (droidcamLabel) {
+                droidcamLabel.addEventListener('mouseenter', () => speak('DroidCam IP Address'));
+            }
+            
+            // Add TTS to info panel
+            const infoPanel = document.querySelector('.info-panel');
+            if (infoPanel) {
+                infoPanel.addEventListener('mouseenter', () => speak('How to find DroidCam IP. Open DroidCam app on your phone. Select WiFi IP option. Note the IP address shown. Enter that IP address in the field.'));
+            }
         });
 
         // Update system status
